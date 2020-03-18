@@ -38,6 +38,11 @@ UIImageView *imageView;
   } else {
     imageView = [[UIImageView alloc]initWithFrame:[self.viewController.view bounds]];
     [imageView setImage:splash];
+
+    if ([self isUsingCDVLaunchScreen]) {
+        // launch screen expects the image to be scaled using AspectFill.
+        imageView.contentMode = UIViewContentModeScaleAspectFill;
+    }
     
     #ifdef __CORDOVA_4_0_0
         [[UIApplication sharedApplication].keyWindow addSubview:imageView];
@@ -76,10 +81,25 @@ UIImageView *imageView;
   return device;
 }
 
+- (BOOL) isUsingCDVLaunchScreen {
+    NSString* launchStoryboardName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"UILaunchStoryboardName"];
+    if (launchStoryboardName) {
+        return ([launchStoryboardName isEqualToString:@"CDVLaunchScreen"]);
+    } else {
+        return NO;
+    }
+}
+
 - (NSString*)getImageName:(UIInterfaceOrientation)currentOrientation delegate:(id<CDVScreenOrientationDelegate>)orientationDelegate device:(CDV_iOSDevice)device
 {
   // Use UILaunchImageFile if specified in plist.  Otherwise, use Default.
   NSString* imageName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"UILaunchImageFile"];
+
+   // detect if we are using Launch Storyboard; if so, return the associated image instead
+  if ([self isUsingCDVLaunchScreen]) {
+    imageName = @"LaunchStoryboard";
+    return imageName;
+  }
 
   NSUInteger supportedOrientations = [orientationDelegate supportedInterfaceOrientations];
 
