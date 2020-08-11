@@ -38,7 +38,12 @@ UIImageView *imageView;
   } else {
     imageView = [[UIImageView alloc]initWithFrame:[self.viewController.view bounds]];
     [imageView setImage:splash];
-    
+
+    if ([self isUsingCDVLaunchScreen]) {
+        // launch screen expects the image to be scaled using AspectFill.
+        imageView.contentMode = UIViewContentModeScaleAspectFill;
+    }
+
     #ifdef __CORDOVA_4_0_0
         [[UIApplication sharedApplication].keyWindow addSubview:imageView];
     #else
@@ -47,18 +52,28 @@ UIImageView *imageView;
   }
 }
 
+- (BOOL) isUsingCDVLaunchScreen {
+    NSString* launchStoryboardName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"UILaunchStoryboardName"];
+
+    if (launchStoryboardName) {
+        return ([launchStoryboardName isEqualToString:@"CDVLaunchScreen"]);
+    } else {
+        return NO;
+    }
+}
+
 // Code below borrowed from the CDV splashscreen plugin @ https://github.com/apache/cordova-plugin-splashscreen
 // Made some adjustments though, becuase landscape splashscreens are not available for iphone < 6 plus
 - (CDV_iOSDevice) getCurrentDevice
 {
   CDV_iOSDevice device;
-  
+
   UIScreen* mainScreen = [UIScreen mainScreen];
   CGFloat mainScreenHeight = mainScreen.bounds.size.height;
   CGFloat mainScreenWidth = mainScreen.bounds.size.width;
-  
+
   int limit = MAX(mainScreenHeight,mainScreenWidth);
-  
+
   device.iPad = (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad);
   device.iPhone = (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone);
   device.retina = ([mainScreen scale] == 2.0);
@@ -80,6 +95,13 @@ UIImageView *imageView;
 {
   // Use UILaunchImageFile if specified in plist.  Otherwise, use Default.
   NSString* imageName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"UILaunchImageFile"];
+
+  // detect if we are using Launch Storyboard; if so, return the associated image instead
+  if ([self isUsingCDVLaunchScreen]) {
+    imageName = @"LaunchStoryboard";
+
+    return imageName;
+  }
 
   NSUInteger supportedOrientations = [orientationDelegate supportedInterfaceOrientations];
 
@@ -154,7 +176,7 @@ UIImageView *imageView;
         case UIInterfaceOrientationLandscapeRight:
           imageName = [imageName stringByAppendingString:@"-Landscape"];
           break;
-          
+
         case UIInterfaceOrientationPortrait:
         case UIInterfaceOrientationPortraitUpsideDown:
         default:
@@ -163,7 +185,7 @@ UIImageView *imageView;
       }
     }
   }
-  
+
   return imageName;
 }
 
